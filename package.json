@@ -1,0 +1,58 @@
+{
+  "name": "dcs-accounting-app",
+  "version": "1.0.0",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "concurrently \"npm run next-dev\" \"wait-on http://localhost:3000 && npm run electron-dev\"",
+    "next-dev": "next dev",
+    "electron-dev": "NODE_ENV=development electron .",
+    "build": "next build",
+    "electron-build": "electron-builder",
+    "dist": "npm run build && npm run electron-build",
+    "test": "vitest",
+    "lint": "biome lint ./src",
+    "lint:fix": "biome lint --write ./src",
+    "format": "biome format ./src",
+    "format:fix": "biome format --write ./src",
+    "check": "biome check ./src",
+    "check:fix": "biome check --write ./src",
+    "typecheck": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/naro9507/dcs-accounting-app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/naro9507/dcs-accounting-app/issues"
+  },
+  "homepage": "https://github.com/naro9507/dcs-accounting-app#readme",
+  "description": "",
+  "dependencies": {
+    "@types/node": "^24.0.3",
+    "@types/react": "^19.1.8",
+    "better-sqlite3": "^11.10.0",
+    "next": "^15.3.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "sqlite3": "^5.1.7",
+    "typescript": "^5.8.3",
+    "zustand": "^5.0.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@vitejs/plugin-react": "^4.5.2",
+    "autoprefixer": "^10.4.21",
+    "concurrently": "^9.1.2",
+    "electron": "^36.4.0",
+    "jsdom": "^26.1.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "vitest": "^3.2.3",
+    "wait-on": "^8.0.3"
+  }
+}
