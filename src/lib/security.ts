@@ -1,4 +1,6 @@
 import crypto from "node:crypto"
+import fs from "node:fs"
+import os from "node:os"
 import path from "node:path"
 import { app } from "electron"
 import { createLogger } from "./logger"
@@ -8,7 +10,6 @@ const logger = createLogger("security")
 const ALGORITHM = "aes-256-gcm"
 const KEY_LENGTH = 32
 const IV_LENGTH = 16
-const _TAG_LENGTH = 16
 
 // ファイル暗号化用のキー管理
 export class FileEncryption {
@@ -27,7 +28,6 @@ export class FileEncryption {
 	private getMasterKey(): Buffer {
 		if (!this.masterKey) {
 			const keyPath = path.join(app.getPath("userData"), ".master_key")
-			const fs = require("node:fs")
 
 			try {
 				if (fs.existsSync(keyPath)) {
@@ -101,7 +101,6 @@ export class FileEncryption {
 	// ファイルの暗号化
 	encryptFile(filePath: string, outputPath: string): void {
 		try {
-			const fs = require("node:fs")
 			const data = fs.readFileSync(filePath, "utf8")
 			const { encrypted, iv, tag } = this.encrypt(data)
 
@@ -118,7 +117,6 @@ export class FileEncryption {
 	// ファイルの復号化
 	decryptFile(encryptedFilePath: string, outputPath: string): void {
 		try {
-			const fs = require("node:fs")
 			const encryptedData = JSON.parse(
 				fs.readFileSync(encryptedFilePath, "utf8")
 			)
@@ -166,9 +164,6 @@ export function verifyPassword(
 
 // セキュアな一時ファイル作成
 export function createSecureTempFile(prefix: string = "dcs_temp_"): string {
-	const fs = require("node:fs")
-	const os = require("node:os")
-
 	const tempDir = os.tmpdir()
 	const filename = prefix + crypto.randomBytes(8).toString("hex")
 	const filePath = path.join(tempDir, filename)

@@ -9,6 +9,9 @@ import { IncomeService } from "../income.service"
 
 const logger = createLogger("useIncome")
 
+// 型をエクスポート（コンポーネントが使用するため）
+export type { Income, CreateIncomeData, UpdateIncomeData }
+
 // サービスのインスタンス
 const incomeService = new IncomeService()
 

@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl"
-import type { Income } from "@/features/income/income.model"
+import type { Income } from "@/features/income/hooks/use-income"
 import {
 	DataList,
 	DataListActions,
@@ -26,8 +26,6 @@ export function IncomeList({
 	onDelete,
 	isLoading = false,
 }: IncomeListProps) {
-	const _t = useTranslations("income")
-
 	return (
 		<DataList
 			items={incomes}

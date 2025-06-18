@@ -13,7 +13,12 @@
       "Bash(chmod:*)",
       "Bash(ls:*)",
       "Bash(npm test)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(rm:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "WebFetch(domain:biomejs.dev)",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": []
   }
