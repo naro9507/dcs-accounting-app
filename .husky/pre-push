@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+# shellcheck source=./_/husky.sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-push checks..."
+
+# コード品質チェック
+echo "📋 Running lint, format, and type checks..."
+npm run lint || exit 1
+npm run format || exit 1  
+npm run typecheck || exit 1
+
+# テスト実行
+echo "🧪 Running tests..."
+npm run test || exit 1
+
+echo "✅ All pre-push checks passed!"

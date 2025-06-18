@@ -1,0 +1,48 @@
+{
+	"common": {
+		"cancel": "Cancel",
+		"save": "Save",
+		"delete": "Delete",
+		"edit": "Edit",
+		"add": "Add",
+		"close": "Close",
+		"loading": "Loading...",
+		"error": "An error occurred",
+		"success": "Completed successfully"
+	},
+	"app": {
+		"title": "Tax Filing Accounting Software",
+		"description": "Accounting software for sole proprietors"
+	},
+	"navigation": {
+		"dashboard": "Dashboard",
+		"income": "Income",
+		"expense": "Expense",
+		"tax": "Tax Filing",
+		"export": "Export",
+		"settings": "Settings"
+	},
+	"income": {
+		"title": "Income Management",
+		"add": "Add Income",
+		"date": "Date",
+		"amount": "Amount",
+		"description": "Description",
+		"category": "Category"
+	},
+	"expense": {
+		"title": "Expense Management",
+		"add": "Add Expense",
+		"date": "Date",
+		"amount": "Amount",
+		"description": "Description",
+		"category": "Category"
+	},
+	"settings": {
+		"title": "Settings",
+		"language": "Language",
+		"theme": "Theme",
+		"backup": "Backup",
+		"restore": "Restore"
+	}
+}
