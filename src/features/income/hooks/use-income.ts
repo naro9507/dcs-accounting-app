@@ -1,11 +1,11 @@
 import { useCallback, useState } from "react"
-import { createLogger } from "@/lib/logger"
 import type {
 	CreateIncomeData,
 	Income,
 	UpdateIncomeData,
-} from "../income.model"
-import { IncomeService } from "../income.service"
+} from "@/features/income/income.model"
+import { IncomeService } from "@/features/income/income.service"
+import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("useIncome")
 

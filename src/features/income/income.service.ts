@@ -4,8 +4,11 @@ import type {
 	CreateIncomeData,
 	IncomeData,
 	UpdateIncomeData,
-} from "./income.model"
-import { Income, validateCreateIncomeData } from "./income.model"
+} from "@/features/income/income.model"
+import {
+	Income,
+	validateCreateIncomeData,
+} from "@/features/income/income.model"
 
 const logger = createLogger("IncomeService")
 

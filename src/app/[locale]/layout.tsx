@@ -12,18 +12,20 @@ export const metadata: Metadata = {
 
 interface Props {
 	children: React.ReactNode
-	params: { locale: string }
+	params: Promise<{ locale: string }>
 }
 
 export default async function LocaleLayout({ children, params }: Props) {
-	if (!locales.includes(params.locale as (typeof locales)[number])) {
+	const { locale } = await params
+
+	if (!locales.includes(locale as (typeof locales)[number])) {
 		notFound()
 	}
 
 	const messages = await getMessages()
 
 	return (
-		<html lang={params.locale}>
+		<html lang={locale}>
 			<body>
 				<NextIntlClientProvider messages={messages}>
 					{children}

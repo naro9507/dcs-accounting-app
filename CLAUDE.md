@@ -22,7 +22,7 @@ dcs-accounting-app/
 │   └── main.js           # Electronメインプロセス
 ├── src/
 │   ├── app/[locale]/     # Next.js App Router
-│   │   └── income/       
+│   │   └── income/
 │   │       ├── components/       # ページ固有コンポーネント
 │   │       └── page.tsx          # ページコンポーネント
 │   ├── features/         # 機能別ディレクトリ

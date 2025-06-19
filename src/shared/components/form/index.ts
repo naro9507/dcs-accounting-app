@@ -1,13 +1,13 @@
-export { Form, useFormContext } from "./form"
+export { Form, useFormContext } from "@/shared/components/form/form"
 export {
 	FormButtonGroup,
 	FormCancelButton,
 	FormSubmitButton,
-} from "./form-button"
+} from "@/shared/components/form/form-button"
 export {
 	FormField,
 	FormInput,
 	FormLabel,
 	FormSelect,
 	FormTextarea,
-} from "./form-field"
+} from "@/shared/components/form/form-field"

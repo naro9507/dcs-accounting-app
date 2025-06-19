@@ -3,8 +3,8 @@
 import { useTranslations } from "next-intl"
 import { useEffect } from "react"
 import { useIncome } from "@/features/income/hooks/use-income"
-import { IncomeForm } from "./components/income-form"
-import { IncomeList } from "./components/income-list"
+import { IncomeForm } from "@/app/[locale]/income/components/income-form"
+import { IncomeList } from "@/app/[locale]/income/components/income-list"
 
 export default function IncomePage() {
 	const t = useTranslations("income")

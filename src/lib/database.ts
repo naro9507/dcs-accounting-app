@@ -2,8 +2,8 @@ import crypto from "node:crypto"
 import path from "node:path"
 import Database from "better-sqlite3"
 import { app } from "electron"
-import { createLogger } from "./logger"
-import { FileEncryption } from "./security"
+import { createLogger } from "@/lib/logger"
+import { FileEncryption } from "@/lib/security"
 
 const logger = createLogger("database")
 

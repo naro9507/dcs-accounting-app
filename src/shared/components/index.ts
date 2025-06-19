@@ -1,2 +1,2 @@
-export * from "./data-list"
-export * from "./form"
+export * from "@/shared/components/data-list"
+export * from "@/shared/components/form"

@@ -21,7 +21,9 @@
       "mcp__ide__getDiagnostics",
       "Bash(pnpm install:*)",
       "Bash(node:*)",
-      "Bash(pnpm:*)"
+      "Bash(pnpm:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx eslint:*)"
     ],
     "deny": []
   }

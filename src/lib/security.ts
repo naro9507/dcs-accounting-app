@@ -3,7 +3,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { app } from "electron"
-import { createLogger } from "./logger"
+import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("security")
 

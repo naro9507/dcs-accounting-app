@@ -1,5 +1,5 @@
 import type React from "react"
-import { useFormContext } from "./form"
+import { useFormContext } from "@/shared/components/form/form"
 
 interface FormFieldProps {
 	children: React.ReactNode

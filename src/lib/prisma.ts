@@ -1,7 +1,7 @@
 import path from "node:path"
 import { PrismaClient } from "@prisma/client"
 import { app } from "electron"
-import { createLogger } from "./logger"
+import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("prisma")
 

@@ -1,5 +1,5 @@
 import type React from "react"
-import { useDataListContext } from "./data-list"
+import { useDataListContext } from "@/shared/components/data-list/data-list"
 
 interface DataListItemProps<T> {
 	item: T

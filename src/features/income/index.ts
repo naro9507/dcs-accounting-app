@@ -1,5 +1,5 @@
 // 収入機能の全てのエクスポート
 
-export * from "./hooks/use-income"
-export * from "./income.model"
-export * from "./income.service"
+export * from "@/features/income/hooks/use-income"
+export * from "@/features/income/income.model"
+export * from "@/features/income/income.service"

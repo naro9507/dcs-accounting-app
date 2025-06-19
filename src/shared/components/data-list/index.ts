@@ -1,13 +1,16 @@
-export { DataList, useDataListContext } from "./data-list"
+export {
+	DataList,
+	useDataListContext,
+} from "@/shared/components/data-list/data-list"
 export {
 	DataListBody,
 	DataListContainer,
 	DataListFooter,
 	DataListHeader,
-} from "./data-list-container"
+} from "@/shared/components/data-list/data-list-container"
 export {
 	DataListActions,
 	DataListEmptyState,
 	DataListItem,
 	DataListLoadingState,
-} from "./data-list-item"
+} from "@/shared/components/data-list/data-list-item"
