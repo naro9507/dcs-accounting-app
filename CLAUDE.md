@@ -59,7 +59,8 @@ dcs-accounting-app/
 
 - **Node.js**: v24.2.0以上
 - **pnpm**: v10.0.0以上
-- **OS**: macOS, Windows, Linux対応
+- **OS**: macOS, Linux対応
+- **Windows**: WSL2必須（ネイティブWindows非対応）
 
 ### Node.jsバージョン管理
 
@@ -139,7 +140,7 @@ pnpm run dist             # 配布パッケージ作成
 - **データベース**: better-sqlite3 + アプリケーションレベル暗号化
 - **キー管理**: 自動生成・安全保存
 - **暗号化対象**: 機密データ（description, notes など）
-- **機能**: 
+- **機能**:
   - 暗号化データの挿入・取得（`insertEncryptedData`, `getEncryptedData`）
   - ファイル暗号化・復号化
   - パスワードハッシュ化・検証
@@ -161,7 +162,7 @@ pnpm run dist             # 配布パッケージ作成
 - **Components**: UI コンポーネント（ページ固有）
 
 ### Compound Pattern コンポーネント
-- **Context APIベース**の状態管理
+- **構造化**された構成のため視覚的に意図がわかりやすくなるため採用
 - **再利用可能**なコンポーネント設計
 - **shared/components**で共通化
 
