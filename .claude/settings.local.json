@@ -18,7 +18,10 @@
       "Bash(find:*)",
       "Bash(grep:*)",
       "WebFetch(domain:biomejs.dev)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(pnpm install:*)",
+      "Bash(node:*)",
+      "Bash(pnpm:*)"
     ],
     "deny": []
   }

@@ -6,6 +6,8 @@
 
 ## 技術スタック
 
+- **Node.js**: v24.2.0+
+- **パッケージマネージャー**: pnpm v10.0.0+
 - **フレームワーク**: Electron + Next.js (TypeScript)
 - **UI**: Shadcn UI + Tailwind CSS
 - **状態管理**: Zustand
@@ -53,6 +55,24 @@ dcs-accounting-app/
 - 個人情報は絶対にハードコードしない
 - セキュリティを最優先
 
+## 環境要件
+
+- **Node.js**: v24.2.0以上
+- **pnpm**: v10.0.0以上
+- **OS**: macOS, Windows, Linux対応
+
+### Node.jsバージョン管理
+
+```bash
+# miseを使用してNode.jsバージョンを固定（推奨）
+mise install     # .node-versionファイルに基づいてバージョンをインストール
+mise use         # バージョンを切り替え
+
+# nvmでも利用可能
+nvm use          # .node-versionファイルに基づいてバージョンを切り替え
+nvm install      # 必要なバージョンをインストール
+```
+
 ## ビルド・デプロイ
 
 ### Makefileコマンド
@@ -78,12 +98,12 @@ make info                # システム情報表示
 make help                # ヘルプ表示
 ```
 
-### npmコマンド（従来）
+### pnpmコマンド（従来）
 ```bash
-npm run dev              # 開発サーバー起動
-npm run prisma:studio    # データベース管理UI
-npm run build:prod       # 本番用ビルド
-npm run dist             # 配布パッケージ作成
+pnpm run dev              # 開発サーバー起動
+pnpm run prisma:studio    # データベース管理UI
+pnpm run build:prod       # 本番用ビルド
+pnpm run dist             # 配布パッケージ作成
 ```
 
 ### 環境変数

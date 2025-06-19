@@ -34,34 +34,34 @@ setup: ## プロジェクトの初期セットアップを実行
 	@echo "詳細は 'make help' をご確認ください。"
 
 # 依存関係インストール
-install: ## npm依存関係をインストール
+install: ## pnpm依存関係をインストール
 	@echo "📦 依存関係をインストール中..."
-	npm install
+	pnpm install
 
 # 開発サーバー起動
 dev: ## 開発サーバーを起動
 	@echo "🔧 開発サーバーを起動中..."
-	npm run dev
+	pnpm run dev
 
 # Next.jsビルド
 build: ## Next.jsアプリをビルド
 	@echo "🏗️  Next.jsアプリをビルド中..."
-	npm run build
+	pnpm run build
 
 # Electronアプリビルド
 build-electron: ## Electronアプリをビルド
 	@echo "⚡ Electronアプリをビルド中..."
-	npm run build:electron
+	pnpm run build:electron
 
 # 本番用完全ビルド
 build-prod: ## 本番用の完全ビルド
 	@echo "🏭 本番用ビルドを実行中..."
-	npm run build:prod
+	pnpm run build:prod
 
 # 配布パッケージ作成
 dist: ## 配布用パッケージを作成
 	@echo "📦 配布パッケージを作成中..."
-	npm run dist
+	pnpm run dist
 
 # クリーンアップ
 clean: ## ビルド成果物をクリーンアップ
@@ -83,32 +83,32 @@ clean-all: clean ## すべてをクリーンアップ（node_modules含む）
 # テスト実行
 test: ## テストを実行
 	@echo "🧪 テストを実行中..."
-	npm run test
+	pnpm run test
 
 # テスト（ウォッチモード）
 test-watch: ## テストをウォッチモードで実行
 	@echo "👀 テスト（ウォッチモード）を実行中..."
-	npm run test -- --watch
+	pnpm run test -- --watch
 
 # リント実行
 lint: ## コードリントを実行
 	@echo "🔍 リントを実行中..."
-	npm run lint
+	pnpm run lint
 
 # リント修正
 lint-fix: ## コードリントを実行して自動修正
 	@echo "🔧 リント修正を実行中..."
-	npm run lint:fix
+	pnpm run lint:fix
 
 # フォーマット
 format: ## コードフォーマットを実行
 	@echo "💅 コードフォーマットを実行中..."
-	npm run format:fix
+	pnpm run format:fix
 
 # 型チェック
 typecheck: ## TypeScript型チェックを実行
 	@echo "🔍 型チェックを実行中..."
-	npm run typecheck
+	pnpm run typecheck
 
 # コード品質チェック（全て）
 check: ## コード品質チェック（リント・フォーマット・型チェック）を実行
@@ -120,24 +120,24 @@ check: ## コード品質チェック（リント・フォーマット・型チ�
 # Prismaセットアップ
 prisma-setup: ## Prismaの初期セットアップ
 	@echo "🗄️  Prismaセットアップ中..."
-	npm run prisma:generate
-	npm run prisma:push
+	pnpm run prisma:generate
+	pnpm run prisma:push
 	@echo "✅ Prismaセットアップ完了"
 
 # Prismaクライアント生成
 prisma-generate: ## Prismaクライアントを生成
 	@echo "⚙️  Prismaクライアントを生成中..."
-	npm run prisma:generate
+	pnpm run prisma:generate
 
 # Prismaスキーマ適用
 prisma-push: ## Prismaスキーマをデータベースに適用
 	@echo "📊 Prismaスキーマを適用中..."
-	npm run prisma:push
+	pnpm run prisma:push
 
 # Prisma Studio起動
 prisma-studio: ## Prisma Studioを起動
 	@echo "🎛️  Prisma Studioを起動中..."
-	npm run prisma:studio
+	pnpm run prisma:studio
 
 # データベースリセット
 prisma-reset: ## データベースをリセット
@@ -175,7 +175,7 @@ quick-start: setup ## クイックスタート（setupと同じ）
 info: ## システム情報を表示
 	@echo "📋 システム情報:"
 	@echo "Node.js: $$(node --version)"
-	@echo "npm: $$(npm --version)"
+	@echo "pnpm: $$(pnpm --version)"
 	@echo "OS: $$(uname -s)"
 	@echo "PWD: $$(pwd)"
 	@echo ""
@@ -195,18 +195,18 @@ info: ## システム情報を表示
 # Git hooks関連
 hooks-install: ## Git hooksをインストール
 	@echo "🪝 Git hooksをインストール中..."
-	npm run prepare
+	pnpm run prepare
 	@echo "✅ Git hooksインストール完了"
 
 hooks-test: ## Git hooksをテスト実行
 	@echo "🧪 Git hooksのテスト実行..."
 	@echo "Pre-push hookテスト:"
 	@echo "📋 Running lint, format, and type checks..."
-	npm run lint
-	npm run format  
-	npm run typecheck
+	pnpm run lint
+	pnpm run format  
+	pnpm run typecheck
 	@echo "🧪 Running tests..."
-	npm run test
+	pnpm run test
 	@echo "✅ All hook tests passed!"
 
 hooks-skip: ## 次回のコミット/プッシュでhooksをスキップ

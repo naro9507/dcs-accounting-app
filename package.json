@@ -4,14 +4,14 @@
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "concurrently \"npm run next-dev\" \"wait-on http://localhost:3000 && npm run electron-dev\"",
+    "dev": "concurrently \"pnpm run next-dev\" \"wait-on http://localhost:3000 && pnpm run electron-dev\"",
     "next-dev": "next dev",
     "electron-dev": "NODE_ENV=development electron .",
-    "build": "npm run build:next && npm run prisma:generate",
+    "build": "pnpm run build:next && pnpm run prisma:generate",
     "build:next": "NODE_ENV=production next build",
     "build:electron": "electron-builder",
-    "build:prod": "npm run build && npm run build:electron",
-    "dist": "npm run build:prod",
+    "build:prod": "pnpm run build && pnpm run build:electron",
+    "dist": "pnpm run build:prod",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
@@ -37,6 +37,10 @@
   },
   "homepage": "https://github.com/naro9507/dcs-accounting-app#readme",
   "description": "",
+  "engines": {
+    "node": ">=24.2.0",
+    "pnpm": ">=10.0.0"
+  },
   "dependencies": {
     "@journeyapps/sqlcipher": "^5.3.1",
     "@prisma/client": "^6.10.0",
