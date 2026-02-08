@@ -36,12 +36,12 @@ npm run dev
 
 ## 🛠️ 技術スタック
 
-- **フレームワーク**: Electron + Next.js (TypeScript)
-- **UI**: Shadcn UI + Tailwind CSS
+- **フレームワーク**: Electron + React (Vite, TypeScript)
+- **UI**: React Admin + Tailwind CSS
 - **データベース**: SQLite + Prisma ORM
 - **状態管理**: Zustand
 - **暗号化**: AES-256-GCM
-- **国際化**: next-intl
+- **国際化**: ローカルJSON + カスタムI18n
 - **ログ**: pino
 - **テスト**: Vitest
 
@@ -51,12 +51,10 @@ npm run dev
 dcs-accounting-app/
 ├── Makefile              # プロジェクト操作自動化
 ├── docs/                 # ドキュメント
-├── src/
-│   ├── app/[locale]/     # Next.js App Router
-│   ├── features/         # 機能別ディレクトリ
-│   ├── shared/           # 共通コンポーネント
-│   └── lib/              # ユーティリティ
-├── electron/             # Electronメインプロセス
+├── apps/
+│   ├── main/             # Electronメインプロセス
+│   └── renderer/         # Vite + React UI
+│       └── src/          # アプリソース
 ├── prisma/               # データベーススキーマ
 └── build/                # ビルド設定
 ```

@@ -1,4 +1,4 @@
-import { useTranslations } from "next-intl"
+import { useTranslations } from "@/i18n/use-translations"
 import type { Income } from "@/features/income/hooks/use-income"
 import {
 	DataList,
@@ -47,7 +47,7 @@ function IncomeListHeader() {
 	const t = useTranslations("income")
 
 	return (
-		<DataListHeader className="grid grid-cols-6 gap-4 p-4 bg-gray-50 font-medium text-gray-700 border-b">
+		<DataListHeader className="grid grid-cols-6 gap-4 border-b bg-gray-50 p-4 font-medium text-gray-700">
 			<div>{t("date")}</div>
 			<div>{t("amount")}</div>
 			<div className="col-span-2">{t("description")}</div>
@@ -77,19 +77,19 @@ function IncomeListBody() {
 					getItemId={(item) => item.id}
 					className="grid grid-cols-6 gap-4 p-4"
 				>
-					{(income) => (
+					{(item) => (
 						<>
-							<div className="text-gray-900">{income.formatDate()}</div>
+							<div className="text-gray-900">{item.formatDate()}</div>
 							<div className="text-gray-900 font-medium">
-								{income.formatAmount()}
+								{item.formatAmount()}
 							</div>
 							<div className="col-span-2 text-gray-700">
-								{income.description}
+								{item.description}
 							</div>
-							<div className="text-gray-700">{income.category}</div>
+							<div className="text-gray-700">{item.category}</div>
 							<DataListActions
-								item={income}
-								getItemId={(item) => item.id}
+								item={item}
+								getItemId={(current) => current.id}
 								editLabel="編集"
 								deleteLabel="削除"
 							/>
@@ -108,7 +108,7 @@ function IncomeListFooter() {
 
 	return (
 		<DataListFooter>
-			<div className="flex justify-between items-center">
+			<div className="flex items-center justify-between">
 				<span className="text-gray-700">合計: {incomes.length}件</span>
 				<span className="text-lg font-bold text-gray-900">
 					{new Intl.NumberFormat("ja-JP", {

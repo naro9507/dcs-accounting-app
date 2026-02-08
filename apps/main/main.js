@@ -6,9 +6,9 @@ const pino = require('pino')
 
 // 本番環境で環境変数を読み込み
 if (!isDev) {
-  require('dotenv').config({ path: path.join(__dirname, '../.env.production') })
+  require('dotenv').config({ path: path.join(__dirname, '../../.env.production') })
 } else {
-  require('dotenv').config({ path: path.join(__dirname, '../.env.development') })
+  require('dotenv').config({ path: path.join(__dirname, '../../.env.development') })
 }
 
 const logger = pino({
@@ -77,11 +77,11 @@ function createWindow() {
 
   if (isDev) {
     logger.debug('Loading development URL')
-    mainWindow.loadURL('http://localhost:3000')
+    mainWindow.loadURL('http://localhost:5173')
     mainWindow.webContents.openDevTools()
   } else {
     logger.debug('Loading production HTML file')
-    mainWindow.loadFile(path.join(__dirname, '../dist/ja/index.html'))
+    mainWindow.loadFile(path.join(__dirname, '../renderer/dist/index.html'))
   }
 }
 

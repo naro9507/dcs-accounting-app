@@ -1,0 +1,42 @@
+{
+  "name": "renderer",
+  "projectType": "application",
+  "sourceRoot": "apps/renderer/src",
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vite --config apps/renderer/vite.config.ts",
+        "cwd": "."
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vite build --config apps/renderer/vite.config.ts",
+        "cwd": "."
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "biome lint apps/renderer/src",
+        "cwd": "."
+      }
+    },
+    "format": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "biome format --write apps/renderer/src",
+        "cwd": "."
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest --config apps/renderer/vitest.config.ts",
+        "cwd": "."
+      }
+    }
+  }
+}

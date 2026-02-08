@@ -168,24 +168,22 @@ make prisma-reset    # データリセット
 dcs-accounting-app/
 ├── Makefile              # プロジェクト操作自動化
 ├── docs/                 # ドキュメント
-├── src/
-│   ├── app/[locale]/     # Next.js App Router
-│   ├── features/         # 機能別ディレクトリ
-│   ├── shared/           # 共通コンポーネント
-│   └── lib/              # ユーティリティ
-├── electron/             # Electronメインプロセス
+├── apps/
+│   ├── main/             # Electronメインプロセス
+│   └── renderer/         # Vite + React UI
+│       └── src/          # アプリソース
 ├── prisma/               # データベーススキーマ
 └── build/                # ビルド設定
 ```
 
 ## 🛠️ 技術スタック
 
-- **フレームワーク**: Electron + Next.js (TypeScript)
-- **UI**: Shadcn UI + Tailwind CSS
+- **フレームワーク**: Electron + React (Vite, TypeScript)
+- **UI**: React Admin + Tailwind CSS
 - **データベース**: SQLite
 - **状態管理**: Zustand
 - **暗号化**: AES-256-GCM
-- **国際化**: next-intl
+- **国際化**: ローカルJSON + カスタムI18n
 - **ログ**: pino
 - **テスト**: Vitest
 
@@ -196,9 +194,9 @@ dcs-accounting-app/
 #### Feature-Based Architecture
 
 ```
-src/features/[feature]/
+apps/renderer/src/features/[feature]/
 ├── [feature].model.ts    # データ型定義・バリデーション
-├── [feature].service.ts  # ビジネスロジック・DB操作
+├── [feature].service.ts  # ビジネスロジック・API操作
 └── hooks/
     └── use-[feature].ts  # React カスタムフック
 ```
@@ -213,7 +211,7 @@ src/features/[feature]/
 ### Compound Pattern コンポーネント
 
 ```
-src/shared/components/
+apps/renderer/src/shared/components/
 ├── form/                 # フォーム関連（Compound Pattern）
 ├── data-list/            # データ表示（Compound Pattern）
 └── index.ts              # エクスポート
@@ -316,7 +314,7 @@ make release-ready
 ## 📄 関連ドキュメント
 
 - [PLATFORM_SUPPORT.md](./PLATFORM_SUPPORT.md) - Windows開発対応
-- [CLAUDE.md](../CLAUDE.md) - プロジェクト概要・指針
+- [AGENTS.md](../AGENTS.md) - プロジェクト概要・指針
 - [README.md](../README.md) - 基本情報
 
 ## 🔐 セキュリティ

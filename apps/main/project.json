@@ -1,0 +1,28 @@
+{
+  "name": "main",
+  "projectType": "application",
+  "sourceRoot": "apps/main",
+  "implicitDependencies": ["renderer"],
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "NODE_ENV=development electron .",
+        "cwd": "."
+      },
+      "dependsOn": [
+        {
+          "projects": "renderer",
+          "target": "dev"
+        }
+      ]
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "electron-builder",
+        "cwd": "."
+      }
+    }
+  }
+}

@@ -14,16 +14,11 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
     "paths": {
       "@/*": [
-        "./src/*"
+        "./apps/renderer/src/*"
       ]
     },
     "target": "ES2017"
@@ -31,12 +26,11 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
-    "next-env.d.ts",
+    "apps/renderer/vite-env.d.ts",
     "dist/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    "electron"
+    "apps/main"
   ]
 }

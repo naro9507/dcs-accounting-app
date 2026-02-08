@@ -43,9 +43,9 @@ dev: ## 開発サーバーを起動
 	@echo "🔧 開発サーバーを起動中..."
 	pnpm run dev
 
-# Next.jsビルド
-build: ## Next.jsアプリをビルド
-	@echo "🏗️  Next.jsアプリをビルド中..."
+# Reactアプリビルド
+build: ## Reactアプリをビルド
+	@echo "🏗️  Reactアプリをビルド中..."
 	pnpm run build
 
 # Electronアプリビルド
@@ -67,6 +67,7 @@ dist: ## 配布用パッケージを作成
 clean: ## ビルド成果物をクリーンアップ
 	@echo "🧹 クリーンアップ中..."
 	rm -rf dist/
+	rm -rf apps/renderer/dist/
 	rm -rf release/
 	rm -rf node_modules/.cache/
 	rm -rf .next/

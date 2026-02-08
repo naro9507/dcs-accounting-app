@@ -1,12 +1,10 @@
-"use client"
-
-import { useTranslations } from "next-intl"
 import { useEffect } from "react"
+import { useTranslations } from "@/i18n/use-translations"
 import { useIncome } from "@/features/income/hooks/use-income"
-import { IncomeForm } from "@/app/[locale]/income/components/income-form"
-import { IncomeList } from "@/app/[locale]/income/components/income-list"
+import { IncomeForm } from "@/pages/income/components/IncomeForm"
+import { IncomeList } from "@/pages/income/components/IncomeList"
 
-export default function IncomePage() {
+export function IncomePage() {
 	const t = useTranslations("income")
 	const {
 		incomes,
@@ -30,13 +28,13 @@ export default function IncomePage() {
 		try {
 			await createIncome({
 				date: new Date(data.date),
-				amount: parseInt(data.amount),
+				amount: Number.parseInt(data.amount, 10),
 				description: data.description,
 				category:
 					data.category as import("@/features/income/income.model").IncomeCategory,
 			})
-		} catch (error) {
-			console.error("Failed to create income:", error)
+		} catch (submitError) {
+			console.error("Failed to create income:", submitError)
 		}
 	}
 
@@ -48,26 +46,25 @@ export default function IncomePage() {
 		if (confirm("この収入を削除しますか？")) {
 			try {
 				await deleteIncome(id)
-			} catch (error) {
-				console.error("Failed to delete income:", error)
+			} catch (deleteError) {
+				console.error("Failed to delete income:", deleteError)
 			}
 		}
 	}
 
 	return (
 		<div className="container mx-auto p-6">
-			<h1 className="text-2xl font-bold mb-6">{t("title")}</h1>
+			<h1 className="mb-6 text-2xl font-bold">{t("title")}</h1>
 
 			{error && (
-				<div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+				<div className="mb-6 rounded-md border border-red-200 bg-red-50 p-4">
 					<p className="text-red-700">{error}</p>
 				</div>
 			)}
 
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-				{/* 収入追加フォーム */}
-				<div className="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
-					<h2 className="text-lg font-semibold mb-4">{t("add")}</h2>
+			<div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+				<div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+					<h2 className="mb-4 text-lg font-semibold">{t("add")}</h2>
 
 					<IncomeForm
 						onSubmit={handleSubmit}
@@ -76,9 +73,8 @@ export default function IncomePage() {
 					/>
 				</div>
 
-				{/* 収入一覧 */}
 				<div>
-					<h2 className="text-lg font-semibold mb-4">収入一覧</h2>
+					<h2 className="mb-4 text-lg font-semibold">収入一覧</h2>
 
 					<IncomeList
 						incomes={incomes}
