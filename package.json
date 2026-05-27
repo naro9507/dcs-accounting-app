@@ -2,20 +2,15 @@
   "name": "dcs-accounting-app",
   "version": "1.0.0",
   "type": "module",
-  "main": "apps/main/main.js",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "nx run-many -t dev --projects=renderer,main --parallel=2",
-    "web-dev": "nx run renderer:dev",
-    "electron-dev": "nx run main:dev",
-    "build": "nx run renderer:build && pnpm run prisma:generate",
+    "dev": "tauri dev",
+    "build": "tauri build",
     "build:web": "nx run renderer:build",
-    "build:electron": "nx run main:build",
-    "build:prod": "pnpm run build && pnpm run build:electron",
-    "dist": "pnpm run build:prod",
-    "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push",
-    "prisma:studio": "prisma studio",
+    "tauri": "tauri",
     "test": "nx run renderer:test",
     "lint": "nx run renderer:lint",
     "lint:fix": "biome lint --write ./apps/renderer/src",
@@ -41,31 +36,26 @@
   "homepage": "https://github.com/naro9507/dcs-accounting-app#readme",
   "description": "",
   "engines": {
-    "node": ">=24.2.0",
+    "node": ">=22.0.0",
     "pnpm": ">=10.0.0"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@journeyapps/sqlcipher": "^5.3.1",
     "@mui/icons-material": "^7.3.6",
     "@mui/material": "^7.3.6",
-    "@prisma/client": "^7.2.0",
-    "@types/better-sqlite3": "^7.6.13",
+    "@tauri-apps/api": "^2.11.0",
+    "@tauri-apps/plugin-fs": "^2.5.1",
+    "@tauri-apps/plugin-sql": "^2.4.0",
+    "@tauri-apps/plugin-store": "^2.4.3",
+    "@tauri-apps/plugin-updater": "^2.10.1",
     "@types/node": "^25.0.3",
     "@types/react": "^19.2.7",
     "@types/uuid": "^11.0.0",
-    "better-sqlite3": "^12.5.0",
-    "dotenv": "^17.2.3",
-    "electron-updater": "^6.6.2",
-    "pino": "^10.1.0",
-    "pino-pretty": "^13.1.3",
-    "prisma": "^7.2.0",
     "react": "^19.2.3",
     "react-admin": "^5.13.4",
     "react-dom": "^19.2.3",
     "react-router-dom": "^7.11.0",
-    "sqlite3": "^5.1.7",
     "typescript": "^5.9.3",
     "uuid": "^13.0.0",
     "zustand": "^5.0.9"
@@ -73,13 +63,13 @@
   "devDependencies": {
     "@biomejs/biome": "^2.3.10",
     "@tailwindcss/postcss": "^4.1.18",
+    "@tauri-apps/cli": "^2.11.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
+    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.2",
     "autoprefixer": "^10.4.23",
     "concurrently": "^9.2.1",
-    "electron": "^39.2.7",
-    "electron-builder": "^26.0.12",
     "husky": "^9.1.7",
     "jsdom": "^27.4.0",
     "nx": "^22.3.3",
@@ -87,71 +77,5 @@
     "tailwindcss": "^4.1.18",
     "vitest": "^4.0.16",
     "wait-on": "^9.0.3"
-  },
-  "build": {
-    "appId": "com.example.dcs-accounting-app",
-    "productName": "DCS会計アプリ",
-    "directories": {
-      "output": "release",
-      "buildResources": "build"
-    },
-    "files": [
-      "apps/renderer/dist/**/*",
-      "apps/main/**/*",
-      "node_modules/@prisma/client/**/*",
-      "node_modules/.prisma/**/*",
-      "prisma/schema.prisma",
-      ".env.production",
-      "!node_modules/.cache",
-      "!**/*.map",
-      "!src",
-      "!electron.ts"
-    ],
-    "extraResources": [
-      {
-        "from": "prisma/schema.prisma",
-        "to": "prisma/schema.prisma"
-      }
-    ],
-    "mac": {
-      "category": "public.app-category.finance",
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
-      ]
-    },
-    "linux": {
-      "target": [
-        {
-          "target": "AppImage",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "deb",
-          "arch": [
-            "x64"
-          ]
-        }
-      ]
-    },
-    "publish": {
-      "provider": "github",
-      "owner": "naro9507",
-      "repo": "dcs-accounting-app"
-    }
   }
 }

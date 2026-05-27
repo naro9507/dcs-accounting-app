@@ -1,5 +1,6 @@
+import { v4 as uuidv4 } from "uuid"
 import { createLogger } from "@/lib/logger"
-import { prisma } from "@/lib/prisma"
+import { getDatabase } from "@/lib/database"
 import type {
 	CreateIncomeData,
 	IncomeData,
@@ -12,89 +13,101 @@ import {
 
 const logger = createLogger("IncomeService")
 
-// 収入に関する全ての操作を管理するサービス
+// tauri-plugin-sql はスネークケースで返すためキャメルケースに変換
+function rowToIncomeData(row: Record<string, unknown>): IncomeData {
+	return {
+		id: String(row.id),
+		date: new Date(String(row.date)),
+		amount: Number(row.amount),
+		description: String(row.description),
+		category: String(row.category) as IncomeData["category"],
+		createdAt: new Date(String(row.created_at)),
+		updatedAt: new Date(String(row.updated_at)),
+	}
+}
+
 export class IncomeService {
-	// 新しい収入を作成
 	async createIncome(data: CreateIncomeData): Promise<Income> {
+		const errors = validateCreateIncomeData(data)
+		if (errors.length > 0) {
+			throw new Error(`入力エラー: ${errors.join(", ")}`)
+		}
+
 		try {
-			// バリデーション
-			const errors = validateCreateIncomeData(data)
-			if (errors.length > 0) {
-				throw new Error(`入力エラー: ${errors.join(", ")}`)
-			}
+			const db = await getDatabase()
+			const id = uuidv4()
+			const now = new Date().toISOString()
 
-			// Prismaでデータベースに保存
-			const created = await prisma.income.create({
-				data: {
-					date: data.date,
-					amount: data.amount,
-					description: data.description,
-					category: data.category,
-				},
+			await db.execute(
+				`INSERT INTO incomes (id, date, amount, description, category, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+				[
+					id,
+					data.date.toISOString(),
+					data.amount,
+					data.description,
+					data.category,
+					now,
+					now,
+				],
+			)
+
+			logger.info("Income created successfully", { id })
+			return Income.fromData({
+				id,
+				date: data.date,
+				amount: data.amount,
+				description: data.description,
+				category: data.category,
+				createdAt: new Date(now),
+				updatedAt: new Date(now),
 			})
-
-			logger.info("Income created successfully", { id: created.id })
-
-			// ドメインモデルに変換して返す
-			return Income.fromData(created as IncomeData)
 		} catch (error) {
 			logger.error("Failed to create income", error)
-			if (error instanceof Error) {
-				throw error
-			}
+			if (error instanceof Error) throw error
 			throw new Error("収入の作成に失敗しました")
 		}
 	}
 
-	// 全ての収入を取得
 	async getAllIncomes(): Promise<Income[]> {
 		try {
-			const incomes = await prisma.income.findMany({
-				orderBy: { date: "desc" },
-			})
-
-			return incomes.map((income) => Income.fromData(income as IncomeData))
+			const db = await getDatabase()
+			const rows: Record<string, unknown>[] = await db.select(
+				"SELECT * FROM incomes ORDER BY date DESC",
+			)
+			return rows.map((r) => Income.fromData(rowToIncomeData(r)))
 		} catch (error) {
 			logger.error("Failed to get all incomes", error)
 			throw new Error("収入一覧の取得に失敗しました")
 		}
 	}
 
-	// IDで収入を取得
 	async getIncomeById(id: string): Promise<Income | null> {
 		try {
-			const income = await prisma.income.findUnique({
-				where: { id },
-			})
-
-			if (!income) {
-				return null
-			}
-
-			return Income.fromData(income as IncomeData)
+			const db = await getDatabase()
+			const rows: Record<string, unknown>[] = await db.select(
+				"SELECT * FROM incomes WHERE id = $1",
+				[id],
+			)
+			if (rows.length === 0) return null
+			return Income.fromData(rowToIncomeData(rows[0]))
 		} catch (error) {
 			logger.error("Failed to get income by id", { id, error })
 			throw new Error("収入の取得に失敗しました")
 		}
 	}
 
-	// 期間で収入を取得
 	async getIncomesByDateRange(
 		startDate: Date,
-		endDate: Date
+		endDate: Date,
 	): Promise<Income[]> {
 		try {
-			const incomes = await prisma.income.findMany({
-				where: {
-					date: {
-						gte: startDate,
-						lte: endDate,
-					},
-				},
-				orderBy: { date: "desc" },
-			})
-
-			return incomes.map((income) => Income.fromData(income as IncomeData))
+			const db = await getDatabase()
+			const rows: Record<string, unknown>[] = await db.select(
+				"SELECT * FROM incomes WHERE date >= $1 AND date <= $2 ORDER BY date DESC",
+				[startDate.toISOString(), endDate.toISOString()],
+			)
+			return rows.map((r) => Income.fromData(rowToIncomeData(r)))
 		} catch (error) {
 			logger.error("Failed to get incomes by date range", {
 				startDate,
@@ -105,104 +118,91 @@ export class IncomeService {
 		}
 	}
 
-	// カテゴリで収入を取得
 	async getIncomesByCategory(category: string): Promise<Income[]> {
 		try {
-			const incomes = await prisma.income.findMany({
-				where: { category },
-				orderBy: { date: "desc" },
-			})
-
-			return incomes.map((income) => Income.fromData(income as IncomeData))
+			const db = await getDatabase()
+			const rows: Record<string, unknown>[] = await db.select(
+				"SELECT * FROM incomes WHERE category = $1 ORDER BY date DESC",
+				[category],
+			)
+			return rows.map((r) => Income.fromData(rowToIncomeData(r)))
 		} catch (error) {
 			logger.error("Failed to get incomes by category", { category, error })
 			throw new Error("カテゴリ別収入の取得に失敗しました")
 		}
 	}
 
-	// 収入を更新
 	async updateIncome(data: UpdateIncomeData): Promise<Income> {
+		const existing = await this.getIncomeById(data.id)
+		if (!existing) throw new Error("収入が見つかりません")
+
+		const updated = existing.update(data)
+		const errors = updated.validate()
+		if (errors.length > 0) {
+			throw new Error(`入力エラー: ${errors.join(", ")}`)
+		}
+
 		try {
-			// 既存の収入を取得
-			const existingIncome = await this.getIncomeById(data.id)
-			if (!existingIncome) {
-				throw new Error("収入が見つかりません")
-			}
-
-			// ドメインモデルで更新処理とバリデーション
-			const updatedIncome = existingIncome.update(data)
-			const errors = updatedIncome.validate()
-			if (errors.length > 0) {
-				throw new Error(`入力エラー: ${errors.join(", ")}`)
-			}
-
-			// データベースを更新
-			const updated = await prisma.income.update({
-				where: { id: data.id },
-				data: updatedIncome.toData(),
-			})
-
+			const db = await getDatabase()
+			const now = new Date().toISOString()
+			await db.execute(
+				`UPDATE incomes
+         SET date = $1, amount = $2, description = $3, category = $4, updated_at = $5
+         WHERE id = $6`,
+				[
+					updated.date.toISOString(),
+					updated.amount,
+					updated.description,
+					updated.category,
+					now,
+					data.id,
+				],
+			)
 			logger.info("Income updated successfully", { id: data.id })
-			return Income.fromData(updated as IncomeData)
+			return updated
 		} catch (error) {
 			logger.error("Failed to update income", { id: data.id, error })
-			if (error instanceof Error) {
-				throw error
-			}
+			if (error instanceof Error) throw error
 			throw new Error("収入の更新に失敗しました")
 		}
 	}
 
-	// 収入を削除
 	async deleteIncome(id: string): Promise<void> {
+		const existing = await this.getIncomeById(id)
+		if (!existing) throw new Error("収入が見つかりません")
+
 		try {
-			// 存在チェック
-			const existingIncome = await this.getIncomeById(id)
-			if (!existingIncome) {
-				throw new Error("収入が見つかりません")
-			}
-
-			await prisma.income.delete({
-				where: { id },
-			})
-
+			const db = await getDatabase()
+			await db.execute("DELETE FROM incomes WHERE id = $1", [id])
 			logger.info("Income deleted successfully", { id })
 		} catch (error) {
 			logger.error("Failed to delete income", { id, error })
-			if (error instanceof Error) {
-				throw error
-			}
+			if (error instanceof Error) throw error
 			throw new Error("収入の削除に失敗しました")
 		}
 	}
 
-	// 合計金額を取得
 	async getTotalAmount(): Promise<number> {
 		try {
-			const result = await prisma.income.aggregate({
-				_sum: {
-					amount: true,
-				},
-			})
-
-			return result._sum.amount || 0
+			const db = await getDatabase()
+			const rows: Array<{ total: number | null }> = await db.select(
+				"SELECT SUM(amount) AS total FROM incomes",
+			)
+			return rows[0]?.total ?? 0
 		} catch (error) {
 			logger.error("Failed to get total amount", error)
 			throw new Error("総収入の取得に失敗しました")
 		}
 	}
 
-	// カテゴリ別合計金額を取得
 	async getTotalAmountByCategory(category: string): Promise<number> {
 		try {
-			const result = await prisma.income.aggregate({
-				where: { category },
-				_sum: {
-					amount: true,
-				},
-			})
-
-			return result._sum.amount || 0
+			const db = await getDatabase()
+			const rows: Array<{ total: number | null }> = await db.select(
+				"SELECT SUM(amount) AS total FROM incomes WHERE category = $1",
+				[category],
+			)
+			return rows[0]?.total ?? 0
 		} catch (error) {
 			logger.error("Failed to get total amount by category", {
 				category,
@@ -212,25 +212,17 @@ export class IncomeService {
 		}
 	}
 
-	// 期間別合計金額を取得
 	async getTotalAmountByDateRange(
 		startDate: Date,
-		endDate: Date
+		endDate: Date,
 	): Promise<number> {
 		try {
-			const result = await prisma.income.aggregate({
-				where: {
-					date: {
-						gte: startDate,
-						lte: endDate,
-					},
-				},
-				_sum: {
-					amount: true,
-				},
-			})
-
-			return result._sum.amount || 0
+			const db = await getDatabase()
+			const rows: Array<{ total: number | null }> = await db.select(
+				"SELECT SUM(amount) AS total FROM incomes WHERE date >= $1 AND date <= $2",
+				[startDate.toISOString(), endDate.toISOString()],
+			)
+			return rows[0]?.total ?? 0
 		} catch (error) {
 			logger.error("Failed to get total amount by date range", {
 				startDate,

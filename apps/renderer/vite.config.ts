@@ -13,5 +13,11 @@ export default defineConfig({
 	build: {
 		outDir: "dist",
 		emptyOutDir: true,
+		target: ["es2021", "chrome105", "safari15"],
+	},
+	clearScreen: false,
+	server: {
+		port: 5173,
+		strictPort: true,
 	},
 })

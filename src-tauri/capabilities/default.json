@@ -1,0 +1,23 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/schema/acl/capability.schema.json",
+  "identifier": "default",
+  "description": "Default capability for DCS会計アプリ",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "sql:allow-execute",
+    "sql:allow-select",
+    "sql:allow-load",
+    "store:allow-get",
+    "store:allow-set",
+    "store:allow-delete",
+    "store:allow-save",
+    "store:allow-load",
+    "store:allow-keys",
+    "fs:allow-app-read",
+    "fs:allow-app-write",
+    "fs:allow-appdata-read",
+    "updater:allow-check",
+    "updater:allow-download-and-install"
+  ]
+}

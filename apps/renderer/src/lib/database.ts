@@ -1,120 +1,52 @@
-import crypto from "node:crypto"
-import path from "node:path"
-import Database from "better-sqlite3"
-import { app } from "electron"
-import { createLogger } from "@/lib/logger"
+import Database from "@tauri-apps/plugin-sql"
+import { Store } from "@tauri-apps/plugin-store"
 import { FileEncryption } from "@/lib/security"
+import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("database")
 
-let dbInstance: Database.Database | null = null
+const DB_URL = "sqlite:accounting.db"
 
-export function getDatabase(): Database.Database {
-	if (!dbInstance) {
-		const dbPath = path.join(app.getPath("userData"), "accounting.db")
+let _db: Database | null = null
 
-		logger.info("Initializing database with application-level encryption", {
-			path: dbPath,
-		})
-
-		dbInstance = new Database(dbPath, {
-			verbose: (message?: unknown) => logger.debug(String(message)),
-		})
-
-		initializeTables()
+export async function getDatabase(): Promise<Database> {
+	if (!_db) {
+		logger.info("Connecting to database", { url: DB_URL })
+		_db = await Database.load(DB_URL)
 	}
-
-	return dbInstance
+	return _db
 }
 
-function initializeTables() {
-	if (!dbInstance) {
-		throw new Error("Database instance is not initialized")
-	}
-	const db = dbInstance
-
-	logger.info("Initializing database tables")
-
-	// 収入テーブル
-	db.exec(`
-    CREATE TABLE IF NOT EXISTS income (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      date TEXT NOT NULL,
-      amount INTEGER NOT NULL,
-      description TEXT NOT NULL,
-      category TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `)
-
-	// 支出テーブル
-	db.exec(`
-    CREATE TABLE IF NOT EXISTS expense (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      date TEXT NOT NULL,
-      amount INTEGER NOT NULL,
-      description TEXT NOT NULL,
-      category TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `)
-
-	// 設定テーブル
-	db.exec(`
-    CREATE TABLE IF NOT EXISTS settings (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `)
-
-	logger.info("Database tables initialized")
-}
-
-export function closeDatabase() {
-	if (dbInstance) {
+export async function closeDatabase(): Promise<void> {
+	if (_db) {
 		logger.info("Closing database connection")
-		dbInstance.close()
-		dbInstance = null
+		_db = null
 	}
 }
 
-// 暗号化キーの再生成（セキュリティ用途）
-export function regenerateEncryptionKey(): string {
+export async function regenerateEncryptionKey(): Promise<string> {
 	logger.info("Regenerating encryption key")
-	const keyPath = path.join(app.getPath("userData"), ".db_key")
-	const fs = require("node:fs")
-
-	const newKey = crypto.randomBytes(32).toString("hex")
-	try {
-		fs.writeFileSync(keyPath, newKey, { mode: 0o600 })
-		logger.info("Encryption key regenerated successfully")
-	} catch (error) {
-		logger.error("Failed to save new encryption key", error)
-	}
-
-	return newKey
+	const store = await Store.load("security-store.json")
+	await store.delete("master_key")
+	await store.save()
+	return "Key regenerated — reload app to apply"
 }
 
-// 暗号化されたデータの挿入
-export function insertEncryptedData(
+export async function insertEncryptedData(
 	table: string,
-	data: Record<string, unknown>
-): void {
-	const db = getDatabase()
+	data: Record<string, unknown>,
+): Promise<void> {
+	const db = await getDatabase()
 	const encryption = FileEncryption.getInstance()
 
-	// 機密データを暗号化
 	const encryptedData: Record<string, unknown> = {}
 	for (const [key, value] of Object.entries(data)) {
 		if (
 			typeof value === "string" &&
 			(key === "description" || key === "notes")
 		) {
-			const encrypted = encryption.encrypt(value)
-			encryptedData[key] = JSON.stringify(encrypted)
+			const payload = await encryption.encrypt(value)
+			encryptedData[key] = JSON.stringify(payload)
 		} else {
 			encryptedData[key] = value
 		}
@@ -122,69 +54,63 @@ export function insertEncryptedData(
 
 	const columns = Object.keys(encryptedData).join(", ")
 	const placeholders = Object.keys(encryptedData)
-		.map(() => "?")
+		.map((_, i) => `$${i + 1}`)
 		.join(", ")
 	const values = Object.values(encryptedData)
 
-	const stmt = db.prepare(
-		`INSERT INTO ${table} (${columns}) VALUES (${placeholders})`
+	await db.execute(
+		`INSERT INTO ${table} (${columns}) VALUES (${placeholders})`,
+		values,
 	)
-	stmt.run(...values)
-
 	logger.debug("Encrypted data inserted", { table })
 }
 
-// 暗号化されたデータの取得
-export function getEncryptedData(
+export async function getEncryptedData(
 	table: string,
 	where?: string,
-	params?: unknown[]
-): Record<string, unknown>[] {
-	const db = getDatabase()
+	params?: unknown[],
+): Promise<Record<string, unknown>[]> {
+	const db = await getDatabase()
 	const encryption = FileEncryption.getInstance()
 
 	let query = `SELECT * FROM ${table}`
-	if (where) {
-		query += ` WHERE ${where}`
-	}
+	if (where) query += ` WHERE ${where}`
 
-	const stmt = db.prepare(query)
-	const rows = params ? stmt.all(...params) : stmt.all()
+	const rows: Record<string, unknown>[] = await db.select(query, params ?? [])
 
-	// 暗号化されたフィールドを復号化
-	return (rows as Record<string, unknown>[]).map((row) => {
-		const decryptedRow = { ...row }
-		for (const [key, value] of Object.entries(row)) {
-			if (
-				typeof value === "string" &&
-				(key === "description" || key === "notes")
-			) {
-				try {
-					const encrypted = JSON.parse(value)
-					if (encrypted.encrypted && encrypted.iv && encrypted.tag) {
-						decryptedRow[key] = encryption.decrypt(
-							encrypted.encrypted,
-							encrypted.iv,
-							encrypted.tag
-						)
+	return Promise.all(
+		rows.map(async (row) => {
+			const decryptedRow = { ...row }
+			for (const [key, value] of Object.entries(row)) {
+				if (
+					typeof value === "string" &&
+					(key === "description" || key === "notes")
+				) {
+					try {
+						const payload = JSON.parse(value)
+						if (payload.encrypted && payload.iv !== undefined) {
+							decryptedRow[key] = await encryption.decrypt(
+								payload.encrypted,
+								payload.iv,
+								payload.tag ?? "",
+							)
+						}
+					} catch {
+						logger.debug("Data not encrypted, using as-is", { key })
 					}
-				} catch (_error) {
-					// 暗号化されていないデータの場合はそのまま
-					logger.debug("Data not encrypted, using as-is", { key })
 				}
 			}
-		}
-		return decryptedRow
-	})
+			return decryptedRow
+		}),
+	)
 }
 
-// データベースの整合性チェック
-export function verifyDatabaseIntegrity(): boolean {
+export async function verifyDatabaseIntegrity(): Promise<boolean> {
 	try {
-		const db = getDatabase()
-		const result = db.pragma("integrity_check") as Array<{
-			integrity_check: string
-		}>
+		const db = await getDatabase()
+		const result: Array<{ integrity_check: string }> = await db.select(
+			"PRAGMA integrity_check",
+		)
 		logger.info("Database integrity check result", result)
 		return result[0]?.integrity_check === "ok"
 	} catch (error) {
