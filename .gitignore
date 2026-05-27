@@ -139,3 +139,4 @@ dist
 .pnp.*
 
 /src/generated/prisma
+src-tauri/target/
