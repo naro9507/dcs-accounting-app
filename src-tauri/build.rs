@@ -40,6 +40,8 @@ fn main() {
             let status = Command::new(swift)
                 .arg("-sdk")
                 .arg(&sdk)
+                .arg("-module-cache-path")
+                .arg(out.join("swift-module-cache"))
                 .args([
                     "-parse-as-library",
                     "-O",

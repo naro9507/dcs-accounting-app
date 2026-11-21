@@ -19,7 +19,9 @@ export function parseAmount(text: string): number | null {
 		.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
 		.replace(/[,，、¥￥円\s]/g, "")
 	if (normalized === "") return null
-	return /^\d+$/.test(normalized) ? Number(normalized) : Number.NaN
+	if (!/^\d+$/.test(normalized)) return Number.NaN
+	const amount = Number(normalized)
+	return Number.isSafeInteger(amount) ? amount : Number.NaN
 }
 
 /** Rust に送る金額。読めない金額は -1 にして、Rust 側の検証で範囲外にする。 */

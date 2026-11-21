@@ -70,6 +70,8 @@ string_enum! {
     pub enum IssueCode {
         /// 見出しの行が見つからない・必要な列がない
         MissingColumns => "missingColumns",
+        DuplicateColumns => "duplicateColumns",
+        MissingTransactionNo => "missingTransactionNo",
         /// 日付が読めない・暦にない
         InvalidDate => "invalidDate",
         /// 取り込む年度の外の日付

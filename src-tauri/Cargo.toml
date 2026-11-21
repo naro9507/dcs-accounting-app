@@ -25,7 +25,7 @@ tauri-plugin-notification = "=2.8.1"
 # 0.42.0 は公開から 7 日たつ前（2026-11-11 公開）に入れた。同梱の SQLite の脆弱性
 # （RUSTSEC-2026-0502、sqlcipher-src 420.0.0 で修正）を直すため、セキュリティ修正として例外にした。
 # 一緒に上がる sqlite-wasm-rs 0.6.3（2026-11-10 公開）は WebAssembly 向けだけで、このアプリのビルドには入らない
-rusqlite = { version = "=0.42.0", features = ["bundled-sqlcipher-vendored-openssl"] }
+rusqlite = { version = "=0.42.0", features = ["backup", "bundled-sqlcipher-vendored-openssl"] }
 # 帳簿の出力と取込（フェーズ 3）。CSV の読み書き、Shift_JIS、Excel の読み取り、PDF の作成
 csv = "1.4.0"
 encoding_rs = "0.8.44"

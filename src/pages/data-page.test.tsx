@@ -138,6 +138,21 @@ beforeEach(() => {
 			}
 		) => {
 			switch (command) {
+				case "backup_settings":
+					return {
+						dir: "/test/backups",
+						isDefault: true,
+						files: [],
+						bookSize: 0,
+					}
+				case "choose_restore_file":
+					return "same-name.chobiyori-backup"
+				case "inspect_backup":
+					return {
+						tradeName: "確認用の帳簿",
+						fiscalYears: [2026],
+						transactions: 42,
+					}
 				case "setup_status":
 					return { completed: true, fiscalYear: 2026 }
 				case "list_fiscal_years":
@@ -190,6 +205,37 @@ beforeEach(() => {
 })
 
 describe("データ", () => {
+	it("復元元の選び直しやパスワード変更の後は中身を再確認する", async () => {
+		const user = userEvent.setup()
+		renderPage()
+		const choose = await screen.findByRole("button", {
+			name: "ほかの場所のバックアップから復元",
+		})
+		const check = () => screen.findByRole("button", { name: "中身を確かめる" })
+		const confirm = () =>
+			screen.queryByRole("button", { name: "この内容に置き換える" })
+		await user.click(choose)
+		await user.click(await check())
+		expect(await screen.findByText("確認用の帳簿")).toBeInTheDocument()
+		expect(confirm()).toBeEnabled()
+
+		await user.click(choose)
+		expect(choose).toBeEnabled()
+		expect(confirm()).not.toBeInTheDocument()
+		await user.click(await check())
+		expect(await screen.findByText("確認用の帳簿")).toBeInTheDocument()
+		await user.click(
+			screen.getByRole("checkbox", {
+				name: "いまと同じパスワードで作ったバックアップ",
+			})
+		)
+		expect(confirm()).not.toBeInTheDocument()
+		expect(mocks.callCommand).not.toHaveBeenCalledWith(
+			"restore_backup",
+			expect.anything()
+		)
+	})
+
 	it("Excel の帳簿は、科目を当てはめてから取り込み、取り込んだ年度を開く", async () => {
 		const user = userEvent.setup()
 		renderPage()

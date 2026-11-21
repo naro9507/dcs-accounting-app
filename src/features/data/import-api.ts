@@ -13,6 +13,8 @@ export type ChosenFile = {
 /** Rust 側 `import::IssueCode` と同じ文字列。 */
 export type IssueCode =
 	| "missingColumns"
+	| "duplicateColumns"
+	| "missingTransactionNo"
 	| "inconsistentDate"
 	| "monthLocked"
 	| "invalidDate"

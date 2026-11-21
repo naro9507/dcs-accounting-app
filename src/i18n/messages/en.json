@@ -547,6 +547,8 @@
 		"whereSheet": "{sheet}, row {row}",
 		"whereRow": "Row {row}",
 		"issue_inconsistentDate": "Rows with this transaction number have different dates",
+		"issue_duplicateColumns": "This field appears more than once. Use one column per field",
+		"issue_missingTransactionNo": "Enter a transaction number. Use the same number for each line of the same transaction",
 		"issue_monthLocked": "This transaction falls in a locked month",
 		"issue_missingColumns": "The header row was not found. Check that the needed columns are there",
 		"issue_invalidDate": "The date cannot be read or does not exist",

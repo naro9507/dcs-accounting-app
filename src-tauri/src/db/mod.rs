@@ -138,21 +138,19 @@ impl Database {
     }
 
     /// 前のバックアップのあとに変更があったか。
-    pub(crate) fn changed_since_backup(&self) -> bool {
-        let changes = self.conn().total_changes();
-        changes
+    fn changed_since_backup(&self, conn: &Connection) -> bool {
+        conn.total_changes()
             != *self
                 .backed_up_changes
                 .lock()
                 .unwrap_or_else(|p| p.into_inner())
     }
 
-    pub(crate) fn mark_backed_up(&self) {
-        let changes = self.conn().total_changes();
+    pub(crate) fn mark_backed_up(&self, conn: &Connection) {
         *self
             .backed_up_changes
             .lock()
-            .unwrap_or_else(|p| p.into_inner()) = changes;
+            .unwrap_or_else(|p| p.into_inner()) = conn.total_changes();
     }
 
     /// 接続を借りる。前の処理が途中で落ちていても、SQLite 側は

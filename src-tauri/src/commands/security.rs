@@ -51,7 +51,7 @@ pub async fn book_status(app: AppHandle, files: State<'_, BookFiles>) -> AppResu
 
 /// 開けた帳簿をアプリに登録する。2 回目以降は何もしない（もう開いている）。
 pub(super) fn open_books(app: &AppHandle, db: Database) {
-    db.mark_backed_up();
+    db.mark_backed_up(&db.conn());
     app.manage(db);
 }
 

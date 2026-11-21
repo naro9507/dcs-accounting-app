@@ -122,11 +122,15 @@ pub fn parse(bytes: &[u8]) -> AppResult<Parsed> {
         }
         let Some(columns) = &columns else {
             // 最初の行は見出し
-            let found: HashMap<Role, usize> = record
-                .iter()
-                .enumerate()
-                .filter_map(|(i, h)| role_of(h).map(|r| (r, i)))
-                .collect();
+            let mut found = HashMap::new();
+            for (index, header) in record.iter().enumerate() {
+                if role_of(header).is_some_and(|role| found.insert(role, index).is_some()) {
+                    parsed.issues.push(
+                        Issue::new(None, row, IssueCode::DuplicateColumns).with(header.to_string()),
+                    );
+                    return Ok(parsed);
+                }
+            }
             let missing: Vec<&str> = REQUIRED
                 .iter()
                 .filter(|r| !found.contains_key(r))
@@ -152,9 +156,14 @@ pub fn parse(bytes: &[u8]) -> AppResult<Parsed> {
             )
         };
 
+        let issue = |code| Issue::new(None, row, code);
+        let key = get(Role::TransactionNo);
+        if key.is_empty() {
+            parsed.issues.push(issue(IssueCode::MissingTransactionNo));
+            continue;
+        }
         let date = normalize_date(get(Role::Date));
-        let key = get(Role::TransactionNo).to_string();
-        let index = *groups.entry(key).or_insert_with(|| {
+        let index = *groups.entry(key.to_string()).or_insert_with(|| {
             parsed.drafts.push(Draft {
                 sheet: None,
                 row,
@@ -168,7 +177,6 @@ pub fn parse(bytes: &[u8]) -> AppResult<Parsed> {
         if invalid[index] {
             continue;
         }
-        let issue = |code| Issue::new(None, row, code);
         if date != parsed.drafts[index].date {
             parsed.issues.push(issue(IssueCode::InconsistentDate));
             invalid[index] = true;
@@ -417,6 +425,32 @@ mod tests {
             .as_deref()
             .unwrap()
             .contains("取引番号"));
+    }
+
+    #[test]
+    fn blank_transaction_numbers_cannot_merge_unrelated_rows() {
+        let data =
+            "取引番号,日付,貸借,科目コード,金額\n,2026/3/5,借方,610,100\n,2026/3/5,貸方,101,100\n";
+        let parsed = parse(data.as_bytes()).unwrap();
+        assert!(parsed.drafts.is_empty());
+        assert_eq!(parsed.issues.len(), 2);
+        assert!(parsed
+            .issues
+            .iter()
+            .all(|issue| issue.code == IssueCode::MissingTransactionNo));
+        let db = set_up_db();
+        assert_eq!(
+            commit(&db, &parsed, Some(2026), &[]).unwrap_err().code,
+            ErrorCode::ImportBlocked
+        );
+    }
+
+    #[test]
+    fn duplicate_columns_are_ambiguous_even_with_bilingual_headers() {
+        let header = format!("取引番号,日付,貸借,科目コード,金額,{}\n", l::AMOUNT.en);
+        let parsed = parse(header.as_bytes()).unwrap();
+        assert!(parsed.drafts.is_empty());
+        assert_eq!(parsed.issues[0].code, IssueCode::DuplicateColumns);
     }
 
     #[test]

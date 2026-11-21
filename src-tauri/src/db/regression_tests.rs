@@ -324,15 +324,16 @@ fn small_asset_annual_limit_also_applies_across_batches() {
 }
 
 #[test]
-fn backup_rename_failure_keeps_the_original_book_open() {
+fn restore_does_not_depend_on_the_old_temporary_filename() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("books.db");
     let db = crate::db::vault::create(&path, "test password").unwrap();
     setup::complete(&db, &input()).unwrap();
     let file = backup::create(&db, dir.path(), backup::BackupKind::Manual).unwrap();
-    std::fs::create_dir(path.with_extension("db.replaced")).unwrap();
-    let err = backup::restore(&db, &dir.path().join(file), None, dir.path()).unwrap_err();
-    assert_eq!(err.code, ErrorCode::FileWrite);
+    let old = path.with_extension("db.replaced");
+    std::fs::create_dir(&old).unwrap();
+    backup::restore(&db, &dir.path().join(file), None, dir.path()).unwrap();
+    assert!(old.is_dir());
     assert!(setup::status(&db.conn()).unwrap().completed);
     let reopened = crate::db::vault::unlock(&path, "test password").unwrap();
     assert!(setup::status(&reopened.conn()).unwrap().completed);

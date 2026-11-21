@@ -38,11 +38,23 @@ export function BackupCard() {
 	const backupNow = useBackupNow()
 	const chooseDir = useChooseBackupDir()
 	const select = useSelectBackup()
-	const [chosen, setChosen] = useState<string | null>(null)
+	const restore = useRestoreBackup()
+	const [chosen, setChosen] = useState<{
+		name: string
+		revision: number
+	} | null>(null)
+	const choosingDisabled = select.isPending || restore.isPending
 
 	const pick = (name: string | null) => {
 		select.mutate(name, {
-			onSuccess: (picked) => setChosen(picked ?? null),
+			onSuccess: (picked) => {
+				restore.reset()
+				setChosen((previous) =>
+					picked
+						? { name: picked, revision: (previous?.revision ?? 0) + 1 }
+						: null
+				)
+			},
 		})
 	}
 
@@ -124,7 +136,8 @@ export function BackupCard() {
 									key={file.name}
 									file={file}
 									onRestore={() => pick(file.name)}
-									selected={chosen === file.name}
+									selected={chosen?.name === file.name}
+									disabled={choosingDisabled}
 								/>
 							))}
 						</ul>
@@ -134,7 +147,7 @@ export function BackupCard() {
 						size="sm"
 						className="w-fit"
 						onClick={() => pick(null)}
-						disabled={select.isPending}
+						disabled={choosingDisabled}
 					>
 						<RotateCcw aria-hidden="true" />
 						{t("restoreOther")}
@@ -143,8 +156,10 @@ export function BackupCard() {
 
 				{chosen && (
 					<RestorePanel
-						key={chosen}
-						name={chosen}
+						key={chosen.revision}
+						name={chosen.name}
+						choosing={select.isPending}
+						restore={restore}
 						onDone={() => setChosen(null)}
 					/>
 				)}
@@ -157,10 +172,12 @@ function BackupRow({
 	file,
 	onRestore,
 	selected,
+	disabled,
 }: {
 	file: BackupFile
 	onRestore: () => void
 	selected: boolean
+	disabled: boolean
 }) {
 	const t = useTranslations("backup")
 	return (
@@ -177,6 +194,7 @@ function BackupRow({
 			<Button
 				variant="ghost"
 				size="sm"
+				disabled={disabled}
 				onClick={onRestore}
 				aria-label={t("restoreFrom", { date: file.createdAt })}
 			>
@@ -187,16 +205,26 @@ function BackupRow({
 }
 
 /** 選んだバックアップを確かめてから復元する。 */
-function RestorePanel({ name, onDone }: { name: string; onDone: () => void }) {
+function RestorePanel({
+	name,
+	choosing,
+	restore,
+	onDone,
+}: {
+	name: string
+	choosing: boolean
+	restore: ReturnType<typeof useRestoreBackup>
+	onDone: () => void
+}) {
 	const t = useTranslations("backup")
 	const listSeparator = useTranslations("app")("listSeparator")
 	const errorMessage = useErrorMessage()
 	const inspect = useInspectBackup()
-	const restore = useRestoreBackup()
 	const sameId = useId()
 	const [samePassword, setSamePassword] = useState(true)
 	const [password, setPassword] = useState("")
 	const key = samePassword ? null : password
+	const busy = choosing || inspect.isPending || restore.isPending
 
 	return (
 		<section
@@ -210,7 +238,12 @@ function RestorePanel({ name, onDone }: { name: string; onDone: () => void }) {
 				<Checkbox
 					id={sameId}
 					checked={samePassword}
-					onChange={(e) => setSamePassword(e.target.checked)}
+					disabled={busy}
+					onChange={(e) => {
+						inspect.reset()
+						restore.reset()
+						setSamePassword(e.target.checked)
+					}}
 				/>
 				<label htmlFor={sameId}>{t("samePassword")}</label>
 			</div>
@@ -224,7 +257,12 @@ function RestorePanel({ name, onDone }: { name: string; onDone: () => void }) {
 						type="password"
 						autoComplete="off"
 						value={password}
-						onChange={(e) => setPassword(e.target.value)}
+						disabled={busy}
+						onChange={(e) => {
+							inspect.reset()
+							restore.reset()
+							setPassword(e.target.value)
+						}}
 					/>
 				</Field>
 			)}
@@ -232,7 +270,7 @@ function RestorePanel({ name, onDone }: { name: string; onDone: () => void }) {
 				variant="outline"
 				className="w-fit"
 				onClick={() => inspect.mutate(key)}
-				disabled={inspect.isPending}
+				disabled={busy}
 			>
 				{t("check")}
 			</Button>
@@ -267,14 +305,14 @@ function RestorePanel({ name, onDone }: { name: string; onDone: () => void }) {
 						<Button
 							variant="destructive"
 							onClick={() => restore.mutate(key)}
-							disabled={restore.isPending}
+							disabled={busy}
 						>
 							{restore.isPending && (
 								<Loader2 aria-hidden="true" className="animate-spin" />
 							)}
 							{t("restoreButton")}
 						</Button>
-						<Button variant="ghost" onClick={onDone}>
+						<Button variant="ghost" onClick={onDone} disabled={busy}>
 							{t("cancel")}
 						</Button>
 					</div>

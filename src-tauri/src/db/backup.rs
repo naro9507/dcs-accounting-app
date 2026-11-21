@@ -7,10 +7,13 @@
 //! 復元は、選んだバックアップを開けるか・壊れていないかを確かめてから、いまの帳簿のバックアップを
 //! 作り、そのあとで入れ替える。復元した帳簿のパスワードは、いまのパスワードにそろえる。
 
-use super::vault::{export_to, fingerprint, side_files, Password};
+use super::vault::{export_to, Password};
 use super::{audit, connect, migrate, Database, MIGRATIONS};
 use crate::error::{AppError, AppResult, ErrorCode};
-use rusqlite::Connection;
+use rusqlite::{
+    backup::{Backup, StepResult},
+    Connection,
+};
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 
@@ -96,27 +99,80 @@ fn timestamp(conn: &Connection) -> AppResult<String> {
     )?)
 }
 
+fn backup_stem(name: &str) -> Option<&str> {
+    let (stem, extension) = name.rsplit_once('.')?;
+    matches!(extension, EXTENSION | LEGACY_EXTENSION).then_some(stem)
+}
+
+fn sequence(suffix: &str) -> Option<u64> {
+    if suffix.is_empty() {
+        Some(1)
+    } else {
+        suffix
+            .strip_prefix('-')?
+            .parse::<u64>()
+            .ok()
+            .filter(|n| *n >= 2)
+    }
+}
+
+fn next_sequence(dir: &Path, stem: &str) -> AppResult<u64> {
+    let error = || AppError::new(ErrorCode::FileWrite);
+    let latest = std::fs::read_dir(dir)
+        .map_err(|_| error())?
+        .flatten()
+        .filter_map(|entry| {
+            let name = entry.file_name();
+            sequence(backup_stem(name.to_str()?)?.strip_prefix(stem)?)
+        })
+        .max()
+        .unwrap_or(0);
+    latest.checked_add(1).ok_or_else(error)
+}
+
 /// バックアップを作る。作ったファイルの名前を返す。
 pub fn create(db: &Database, dir: &Path, kind: BackupKind) -> AppResult<String> {
+    create_locked(db, &db.conn(), dir, kind)
+}
+
+fn create_locked(
+    db: &Database,
+    conn: &Connection,
+    dir: &Path,
+    kind: BackupKind,
+) -> AppResult<String> {
     std::fs::create_dir_all(dir).map_err(|_| AppError::new(ErrorCode::FileWrite))?;
-    let name = {
-        let conn = db.conn();
-        let key = db.key();
-        let mut name = format!("books-{}-{}.{EXTENSION}", kind.prefix(), timestamp(&conn)?);
-        // 同じ秒に 2 回作ったときは番号を付ける
-        let mut n = 2;
-        while dir.join(&name).exists() {
-            name = format!(
-                "books-{}-{}-{n}.{EXTENSION}",
-                kind.prefix(),
-                timestamp(&conn)?
-            );
-            n += 1;
+    let staged = tempfile::tempdir_in(dir).map_err(|_| AppError::new(ErrorCode::FileWrite))?;
+    let file = staged.path().join("backup.db");
+    let stamp = timestamp(conn)?;
+    let stem = format!("books-{}-{stamp}", kind.prefix());
+    export_to(conn, &file, db.key().as_ref())?;
+    // 検証済みのファイルだけを一覧に出す。
+    let write_error = |_| AppError::new(ErrorCode::FileWrite);
+    let mut file = tempfile::TempPath::try_from_path(file).map_err(write_error)?;
+    // 古いファイルを整理したあとも、同じ秒の連番を使い回さない。
+    let mut next = next_sequence(dir, &stem)?;
+    let name = loop {
+        let base = if next == 1 {
+            stem.clone()
+        } else {
+            format!("{stem}-{next}")
+        };
+        let name = format!("{base}.{EXTENSION}");
+        if !dir.join(format!("{base}.{LEGACY_EXTENSION}")).exists() {
+            match file.persist_noclobber(dir.join(&name)) {
+                Ok(()) => break name,
+                Err(err) if err.error.kind() == std::io::ErrorKind::AlreadyExists => {
+                    file = err.path
+                }
+                Err(err) => return Err(write_error(err.error)),
+            }
         }
-        export_to(&conn, &dir.join(&name), key.as_ref())?;
-        name
+        next = next
+            .checked_add(1)
+            .ok_or(AppError::new(ErrorCode::FileWrite))?;
     };
-    db.mark_backed_up();
+    db.mark_backed_up(conn);
     if kind == BackupKind::Auto {
         prune(dir)?;
     }
@@ -125,10 +181,11 @@ pub fn create(db: &Database, dir: &Path, kind: BackupKind) -> AppResult<String> 
 
 /// 終了するときのバックアップ。前のバックアップから変更がなければ作らない。
 pub fn auto(db: &Database, dir: &Path) -> AppResult<Option<String>> {
-    if !db.changed_since_backup() {
+    let conn = db.conn();
+    if !db.changed_since_backup(&conn) {
         return Ok(None);
     }
-    create(db, dir, BackupKind::Auto).map(Some)
+    create_locked(db, &conn, dir, BackupKind::Auto).map(Some)
 }
 
 /// 保存先のバックアップの一覧。新しい順。
@@ -136,20 +193,24 @@ pub fn list(dir: &Path) -> AppResult<Vec<BackupFile>> {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return Ok(Vec::new());
     };
-    let mut files: Vec<BackupFile> = entries
+    let mut files: Vec<_> = entries
         .flatten()
         .filter_map(|e| {
-            let name = e.file_name().to_string_lossy().into_owned();
+            if !e.file_type().ok()?.is_file() {
+                return None;
+            }
+            let name = e.file_name().into_string().ok()?;
             let kind = BackupKind::of(&name)?;
-            if !name.ends_with(&format!(".{EXTENSION}"))
-                && !name.ends_with(&format!(".{LEGACY_EXTENSION}"))
+            let value = backup_stem(&name)?.strip_prefix(&format!("books-{}-", kind.prefix()))?;
+            let (stamp, suffix) = value.split_at_checked(15)?;
+            let (date, time) = stamp.split_once('-')?;
+            if date.len() != 8
+                || time.len() != 6
+                || !date.bytes().chain(time.bytes()).all(|b| b.is_ascii_digit())
             {
                 return None;
             }
-            let stamp = name
-                .trim_start_matches(&format!("books-{}-", kind.prefix()))
-                .get(..15)?
-                .to_string();
+            let sequence = sequence(suffix)?;
             let created_at = format!(
                 "{}-{}-{} {}:{}:{}",
                 stamp.get(0..4)?,
@@ -159,17 +220,24 @@ pub fn list(dir: &Path) -> AppResult<Vec<BackupFile>> {
                 stamp.get(11..13)?,
                 stamp.get(13..15)?
             );
-            Some(BackupFile {
-                size: e.metadata().map(|m| m.len()).unwrap_or(0),
-                name,
-                kind,
-                created_at,
-            })
+            Some((
+                sequence,
+                BackupFile {
+                    size: e.metadata().map(|m| m.len()).unwrap_or(0),
+                    name,
+                    kind,
+                    created_at,
+                },
+            ))
         })
         .collect();
-    files.sort_by(|a, b| b.name.cmp(&a.name).then(b.created_at.cmp(&a.created_at)));
-    files.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-    Ok(files)
+    files.sort_by(|(a_sequence, a), (b_sequence, b)| {
+        b.created_at
+            .cmp(&a.created_at)
+            .then(b_sequence.cmp(a_sequence))
+            .then(b.name.cmp(&a.name))
+    });
+    Ok(files.into_iter().map(|(_, file)| file).collect())
 }
 
 /// 自動のバックアップを、新しい `AUTO_KEEP` 個だけ残す。
@@ -249,90 +317,47 @@ pub fn inspect(path: &Path, password: Option<&str>) -> AppResult<BackupSummary> 
 /// バックアップから復元する。`password` はそのバックアップを作ったときのパスワード
 /// （None ならいまのパスワード）。入れ替える前に、いまの帳簿のバックアップを `dir` に作る。
 pub fn restore(db: &Database, source: &Path, password: Option<&str>, dir: &Path) -> AppResult<()> {
-    let Some(path) = db.path().map(Path::to_path_buf) else {
-        return Err(AppError::new(ErrorCode::FileWrite));
-    };
+    let parent = db
+        .path()
+        .and_then(Path::parent)
+        .ok_or(AppError::new(ErrorCode::FileWrite))?;
+    let mut live = db.conn();
     let key = db.key();
     let source_key = password.map(Password::new).or_else(|| key.clone());
-    // 1. バックアップを確かめ、いまのパスワードで暗号化した写しを作る
-    let incoming = path.with_extension("db.restoring");
-    {
-        let conn = open_backup(source, source_key.as_ref())?;
-        let expected = fingerprint(&conn)?;
-        export_to(&conn, &incoming, key.as_ref())?;
-        let copy = connect(&incoming, key.as_ref().map(Password::as_str))?;
-        if fingerprint(&copy)? != expected {
-            drop(copy);
-            let _ = std::fs::remove_file(&incoming);
-            return Err(AppError::new(ErrorCode::BackupInvalid));
-        }
-        // Imported device enrollments cannot authorize this installation.
-        copy.execute(
-            "DELETE FROM settings WHERE key=?1",
-            [super::vault::DEVICE_BINDING],
-        )?;
-        copy.execute_batch("PRAGMA wal_checkpoint(TRUNCATE)")?;
-    }
-    // 2. いまの帳簿を残す
-    create(db, dir, BackupKind::BeforeRestore)?;
 
-    // 3. 入れ替える。接続を閉じている間は、ほかの処理を待たせる
-    let old = path.with_extension("db.replaced");
-    let mut guard = db.conn();
-    let checkpoint: i64 =
-        guard.query_row("PRAGMA wal_checkpoint(TRUNCATE)", [], |row| row.get(0))?;
-    if checkpoint != 0 {
-        let _ = std::fs::remove_file(&incoming);
+    let staged = tempfile::tempdir_in(parent).map_err(|_| AppError::new(ErrorCode::FileWrite))?;
+    let incoming = staged.path().join("restore.db");
+    let original = open_backup(source, source_key.as_ref())?;
+    export_to(&original, &incoming, key.as_ref())?;
+    drop(original);
+
+    let ready = connect(&incoming, key.as_ref().map(Password::as_str))?;
+    migrate(&ready)?;
+    // 別の端末で作ったログイン設定を引き継がない。
+    ready.execute(
+        "DELETE FROM settings WHERE key=?1",
+        [super::vault::DEVICE_BINDING],
+    )?;
+    audit::event(
+        &ready,
+        "books",
+        "restore",
+        None,
+        source
+            .file_name()
+            .map(|n| serde_json::json!({ "file": n.to_string_lossy() })),
+    )?;
+
+    create_locked(db, &live, dir, BackupKind::BeforeRestore)?;
+    // SQLite が 1 つのトランザクションで入れ替える。途中で失敗したら元の帳簿を保つ。
+    let file_write = |_| AppError::new(ErrorCode::FileWrite);
+    let result = Backup::new(&ready, &mut live)
+        .and_then(|backup| backup.step(-1))
+        .map_err(file_write)?;
+    if !matches!(result, StepResult::Done) {
         return Err(AppError::new(ErrorCode::FileWrite));
     }
-    *guard = Connection::open_in_memory()?;
-    for side in side_files(&path) {
-        let _ = std::fs::remove_file(side);
-    }
-    let reopen = |file: &Path| -> AppResult<Connection> {
-        let conn = connect(file, key.as_ref().map(Password::as_str))?;
-        migrate(&conn)?;
-        Ok(conn)
-    };
-    if std::fs::rename(&path, &old).is_err() {
-        *guard = reopen(&path)?;
-        let _ = std::fs::remove_file(&incoming);
-        return Err(AppError::new(ErrorCode::FileWrite));
-    }
-    let swapped = std::fs::rename(&incoming, &path)
-        .map_err(|_| AppError::new(ErrorCode::FileWrite))
-        .and_then(|()| reopen(&path));
-    match swapped {
-        Ok(conn) => {
-            *guard = conn;
-            let _ = std::fs::remove_file(&old);
-            for side in side_files(&old) {
-                let _ = std::fs::remove_file(side);
-            }
-            audit::event(
-                &guard,
-                "books",
-                "restore",
-                None,
-                source
-                    .file_name()
-                    .map(|n| serde_json::json!({ "file": n.to_string_lossy() })),
-            )?;
-            drop(guard);
-            db.mark_backed_up();
-            Ok(())
-        }
-        Err(error) => {
-            // 元に戻す
-            let _ = std::fs::remove_file(&path);
-            let _ = std::fs::rename(&old, &path);
-            if let Ok(conn) = reopen(&path) {
-                *guard = conn;
-            }
-            let _ = std::fs::remove_file(&incoming);
-            Err(error)
-        }
-    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -372,6 +397,29 @@ mod tests {
         let legacy = created.replace(EXTENSION, LEGACY_EXTENSION);
         std::fs::rename(backups.join(&created), backups.join(&legacy)).unwrap();
         assert_eq!(list(&backups).unwrap()[0].name, legacy);
+    }
+
+    #[test]
+    fn pruning_keeps_the_newest_backups_created_in_the_same_second() {
+        let dir = tempfile::tempdir().unwrap();
+        let stem = "books-auto-20261121-185530";
+        let names: Vec<_> = (1..=12)
+            .map(|number| match number {
+                1 => format!("{stem}.{LEGACY_EXTENSION}"),
+                _ => format!("{stem}-{number}.{EXTENSION}"),
+            })
+            .collect();
+        for name in &names {
+            std::fs::write(dir.path().join(name), []).unwrap();
+        }
+        prune(dir.path()).unwrap();
+        let kept: Vec<_> = list(dir.path())
+            .unwrap()
+            .into_iter()
+            .map(|f| f.name)
+            .collect();
+        assert_eq!(kept, names[5..].iter().rev().cloned().collect::<Vec<_>>());
+        assert_eq!(next_sequence(dir.path(), stem).unwrap(), 13);
     }
 
     #[test]
@@ -468,6 +516,39 @@ mod tests {
     }
 
     #[test]
+    fn restore_upgrades_an_older_encrypted_backup_before_replacing_the_book() {
+        let dir = tempfile::tempdir().unwrap();
+        let old = tempfile::tempdir().unwrap();
+        let previous = books(old.path());
+        add(&previous, 500);
+        {
+            let conn = previous.conn();
+            conn.execute_batch("DROP TABLE received_bills; PRAGMA user_version = 14;")
+                .unwrap();
+        }
+        let name = create(&previous, old.path(), BackupKind::Manual).unwrap();
+
+        let db = books(dir.path());
+        let path = db.path().unwrap().to_path_buf();
+        let source = old.path().join(name);
+        restore(&db, &source, None, dir.path()).unwrap();
+        add(&db, 600);
+        drop(db);
+
+        let db = vault::unlock(&path, "correct horse").unwrap();
+        assert_eq!(count(&db), 2);
+        assert!(super::super::received_bills::list(&db.conn())
+            .unwrap()
+            .is_empty());
+        assert_eq!(
+            inspect(&source, Some("correct horse"))
+                .unwrap()
+                .transactions,
+            1
+        );
+    }
+
+    #[test]
     fn broken_files_are_not_restored() {
         let dir = tempfile::tempdir().unwrap();
         let backups = dir.path().join("backups");
@@ -485,11 +566,31 @@ mod tests {
     }
 
     #[test]
+    fn restore_stops_if_the_current_book_cannot_be_backed_up() {
+        let dir = tempfile::tempdir().unwrap();
+        let backups = dir.path().join("backups");
+        let db = books(dir.path());
+        add(&db, 1000);
+        let source = backups.join(create(&db, &backups, BackupKind::Manual).unwrap());
+        add(&db, 2000);
+        let blocked = dir.path().join("not-a-directory");
+        std::fs::write(&blocked, []).unwrap();
+
+        assert_eq!(
+            restore(&db, &source, None, &blocked).unwrap_err().code,
+            ErrorCode::FileWrite
+        );
+        assert_eq!(count(&db), 2);
+        add(&db, 3000);
+        assert_eq!(count(&db), 3);
+    }
+
+    #[test]
     fn automatic_backups_skip_unchanged_books_and_keep_seven() {
         let dir = tempfile::tempdir().unwrap();
         let backups = dir.path().join("backups");
         let db = books(dir.path());
-        db.mark_backed_up();
+        db.mark_backed_up(&db.conn());
         assert_eq!(auto(&db, &backups).unwrap(), None);
         for n in 0..9 {
             add(&db, 100 + n);

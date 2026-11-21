@@ -176,11 +176,15 @@ pub fn parse_date(text: &str) -> Option<String> {
         _ => return None,
     };
     let year = match base {
-        Some(base) => base + year - 1,
-        None if year >= 1900 => year,
-        None => return None,
+        Some(base) if (1..=9999).contains(&year) => base + year - 1,
+        Some(_) => return None,
+        None => year,
     };
-    if !(1..=12).contains(&month) || day == 0 || day > days_in_month(year, month) {
+    if !(1900..=9999).contains(&year)
+        || !(1..=12).contains(&month)
+        || day == 0
+        || day > days_in_month(year, month)
+    {
         return None;
     }
     Some(format!("{year:04}-{month:02}-{day:02}"))
@@ -724,7 +728,16 @@ mod tests {
         ] {
             assert_eq!(parse_date(text).as_deref(), Some(expected), "{text}");
         }
-        for text in ["", "合計", "2026/02/30", "10/05", "1234"] {
+        for text in [
+            "",
+            "合計",
+            "2026/02/30",
+            "10/05",
+            "1234",
+            "令和0年1月1日",
+            "R9223372036854775807.1.1",
+            "10000/01/01",
+        ] {
             assert_eq!(parse_date(text), None, "{text}");
         }
     }

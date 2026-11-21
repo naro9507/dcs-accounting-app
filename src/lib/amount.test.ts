@@ -27,6 +27,11 @@ describe("金額", () => {
 		expect(amountForCommand("")).toBe(-1)
 		expect(amountForCommand("1,000")).toBe(1000)
 	})
+
+	it("丸められる桁数や無限大になる金額はコマンドに渡さない", () => {
+		expect(parseAmount("9007199254740993")).toBeNaN()
+		expect(amountForCommand("9".repeat(400))).toBe(-1)
+	})
 })
 
 describe("期首残高の金額", () => {

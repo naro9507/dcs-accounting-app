@@ -547,6 +547,8 @@
 		"whereSheet": "{sheet} の {row} 行目",
 		"whereRow": "{row} 行目",
 		"issue_inconsistentDate": "同じ取引番号の行で日付が異なります",
+		"issue_duplicateColumns": "同じ項目の列が複数あります。各項目を 1 列にまとめてください",
+		"issue_missingTransactionNo": "取引番号が空欄です。同じ取引の明細行には同じ番号を入れてください",
 		"issue_monthLocked": "この取引の日付は締め済みの月です",
 		"issue_missingColumns": "見出しの行が見つかりません。必要な列があるか確かめてください",
 		"issue_invalidDate": "日付が読めないか、暦にない日です",
