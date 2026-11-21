@@ -47,7 +47,7 @@ lettre = { version = "0.11.24", default-features = false, features = ["builder",
 # 2.7.3（2026-11-10 公開）は 7 日たっていないので 2.7.2 に固定する
 tauri-plugin-opener = "=2.7.2"
 # 証憑のハッシュと、画像を API に送るときの base64
-sha2 = "0.10.9"
+sha2 = "0.11.1"
 base64 = "0.22.1"
 # 復旧コードの生成と、コードで保護した鍵情報の保存（既存の依存を使用）
 ring = "0.17.14"
