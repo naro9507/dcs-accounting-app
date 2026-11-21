@@ -45,7 +45,7 @@ keyring = { version = "3.6.3", features = ["apple-native", "windows-native", "li
 lettre = { version = "0.11.24", default-features = false, features = ["builder", "smtp-transport", "rustls", "ring", "rustls-platform-verifier"] }
 # メールソフト（mailto:）と、保存した PDF のフォルダを開く。Rust 側からだけ使い、画面に権限は渡さない。
 # 2.7.3（2026-11-10 公開）は 7 日たっていないので 2.7.2 に固定する
-tauri-plugin-opener = "=2.7.2"
+tauri-plugin-opener = "=2.7.3"
 # 証憑のハッシュと、画像を API に送るときの base64
 sha2 = "0.10.9"
 base64 = "0.22.1"
